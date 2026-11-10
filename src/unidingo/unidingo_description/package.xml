@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>unidingo_description</name>
+  <version>1.0.0</version>
+  <description>Uni-Dingo whole-robot model: Dingo-O chassis with two Unitree Z1 arms, an IQR pan-tilt and an Intel RealSense D455, assembled from the official description packages.</description>
+  <maintainer email="1435778533@qq.com">Lu Xiangyun</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <test_depend>roslaunch</test_depend>
+
+  <exec_depend>dingo_description</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>pan_tilt_description</exec_depend>
+  <exec_depend>realsense2_description</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>z1_description</exec_depend>
+</package>

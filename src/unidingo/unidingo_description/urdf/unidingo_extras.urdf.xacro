@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!--
+  Uni-Dingo 整机附加结构：双 Z1 机械臂 + Pan-Tilt 云台 + D455 相机。
+
+  本文件通过 Clearpath 官方的 DINGO_URDF_EXTRAS 机制并入 dingo_description 的
+  dingo.urdf.xacro（见 env-hooks/50.unidingo.sh.em），因此底盘官方的
+  description.launch / base.launch 加载的 robot_description 就是完整整机模型。
+
+  所有部件都挂在 Dingo-O 的 base_link 上。安装位置沿用原整机模型的参数。
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find unidingo_description)/urdf/z1_arm.urdf.xacro"/>
+  <xacro:include filename="$(find pan_tilt_description)/urdf/pan_tilt.urdf.xacro"/>
+  <xacro:include filename="$(find realsense2_description)/urdf/_d455.urdf.xacro"/>
+
+  <!-- 两臂是否安装宇树原装夹爪；与 unidingo_bringup/launch/arms.launch 读取同一组环境变量 -->
+  <xacro:property name="left_gripper" value="$(optenv UNIDINGO_LEFT_GRIPPER true)"/>
+  <xacro:property name="right_gripper" value="$(optenv UNIDINGO_RIGHT_GRIPPER true)"/>
+
+  <!-- 安装位置（相对 base_link，单位 m） -->
+  <xacro:property name="support_radius" value="0.02"/>
+  <xacro:property name="support_clearance" value="0.10"/>
+  <xacro:property name="arm_mount_x" value="0.15091"/>
+  <xacro:property name="arm_mount_y" value="0.11708"/>
+  <xacro:property name="arm_mount_z" value="0.57228"/>
+  <xacro:property name="pan_tilt_mount_x" value="0.15091"/>
+  <xacro:property name="pan_tilt_mount_y" value="0"/>
+  <xacro:property name="pan_tilt_mount_z" value="1.0"/>
+  <xacro:property name="camera_mount_z" value="0.1"/>
+
+  <!-- 支撑柱惯性参数（铝制圆柱） -->
+  <xacro:property name="arm_support_mass" value="1.4"/>
+  <xacro:property name="pan_tilt_support_mass" value="2.7"/>
+
+  <material name="unidingo_support_grey">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+
+  <!-- 竖直支撑柱：link 原点在柱顶，柱体向下延伸 length -->
+  <xacro:macro name="unidingo_support" params="name parent length mass *origin">
+    <link name="${name}">
+      <inertial>
+        <origin xyz="0 0 ${-length/2.0}" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia ixx="${mass*(3*support_radius*support_radius + length*length)/12.0}" ixy="0" ixz="0"
+                 iyy="${mass*(3*support_radius*support_radius + length*length)/12.0}" iyz="0"
+                 izz="${mass*support_radius*support_radius/2.0}"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 ${-length/2.0}" rpy="0 0 0"/>
+        <geometry><cylinder length="${length}" radius="${support_radius}"/></geometry>
+        <material name="unidingo_support_grey"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${-length/2.0}" rpy="0 0 0"/>
+        <geometry><cylinder length="${length}" radius="${support_radius}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${parent}_${name}_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- ========== 双臂 ========== -->
+  <xacro:unidingo_support name="leftarm_link" parent="base_link"
+                          length="${arm_mount_z - support_clearance}" mass="${arm_support_mass}">
+    <origin xyz="${arm_mount_x} ${arm_mount_y} ${arm_mount_z}" rpy="0 0 0"/>
+  </xacro:unidingo_support>
+  <xacro:unidingo_support name="rightarm_link" parent="base_link"
+                          length="${arm_mount_z - support_clearance}" mass="${arm_support_mass}">
+    <origin xyz="${arm_mount_x} ${-arm_mount_y} ${arm_mount_z}" rpy="0 0 0"/>
+  </xacro:unidingo_support>
+
+  <xacro:z1_arm prefix="left_" parent="leftarm_link" gripper="${left_gripper}">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:z1_arm>
+  <xacro:z1_arm prefix="right_" parent="rightarm_link" gripper="${right_gripper}">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:z1_arm>
+
+  <!-- ========== 云台（关节名 pan_tilt_yaw_joint / pan_tilt_pitch_joint 与官方驱动一致） ========== -->
+  <xacro:unidingo_support name="pan_tilt_mount_link" parent="base_link"
+                          length="${pan_tilt_mount_z - support_clearance}" mass="${pan_tilt_support_mass}">
+    <origin xyz="${pan_tilt_mount_x} ${pan_tilt_mount_y} ${pan_tilt_mount_z}" rpy="0 0 0"/>
+  </xacro:unidingo_support>
+
+  <xacro:pan_tilt parent="pan_tilt_mount_link">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:pan_tilt>
+
+  <!-- ========== D455 相机（官方 realsense2_description 宏，装在云台面板上方的短柱顶端） ========== -->
+  <xacro:unidingo_support name="camera_support_link" parent="pan_tilt_surface"
+                          length="${camera_mount_z}" mass="0.05">
+    <origin xyz="0 0 ${camera_mount_z}" rpy="0 0 0"/>
+  </xacro:unidingo_support>
+
+  <!-- use_nominal_extrinsics=false：模型只建到 d455_link，其余光学坐标系由
+       realsense2_camera 驱动按出厂标定外参发布（rs_camera.launch 的 camera:=d455） -->
+  <xacro:sensor_d455 parent="camera_support_link" name="d455" use_nominal_extrinsics="false">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:sensor_d455>
+
+</robot>

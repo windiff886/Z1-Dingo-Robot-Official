@@ -1,0 +1,40 @@
+<launch>
+  <!--
+    双臂：左右臂各运行一套官方 z1_ros 栈（z1_ctrl + z1_hw + move_group），
+    分别位于 /left_arm 与 /right_arm 命名空间。
+    夹爪默认按两臂都装有宇树原装夹爪；更换夹爪后设置环境变量
+    UNIDINGO_LEFT_GRIPPER / UNIDINGO_RIGHT_GRIPPER=false（整机模型读取同一组变量）。
+  -->
+  <arg name="left" default="true" />
+  <arg name="right" default="true" />
+  <arg name="left_gripper" default="$(optenv UNIDINGO_LEFT_GRIPPER true)" />
+  <arg name="right_gripper" default="$(optenv UNIDINGO_RIGHT_GRIPPER true)" />
+
+  <arg name="left_mcu_ip" default="192.168.123.110" />
+  <arg name="right_mcu_ip" default="192.168.123.111" />
+
+  <arg name="moveit" default="true" />
+  <arg name="rviz" default="false" />
+
+  <include if="$(arg left)" file="$(find unidingo_bringup)/launch/z1_arm.launch">
+    <arg name="arm" value="left" />
+    <arg name="mcu_ip" value="$(arg left_mcu_ip)" />
+    <arg name="port_to_mcu" value="8881" />
+    <arg name="port_to_sdk" value="8871" />
+    <arg name="sdk_own_port" value="8872" />
+    <arg name="gripper" value="$(arg left_gripper)" />
+    <arg name="moveit" value="$(arg moveit)" />
+    <arg name="rviz" value="$(arg rviz)" />
+  </include>
+
+  <include if="$(arg right)" file="$(find unidingo_bringup)/launch/z1_arm.launch">
+    <arg name="arm" value="right" />
+    <arg name="mcu_ip" value="$(arg right_mcu_ip)" />
+    <arg name="port_to_mcu" value="8882" />
+    <arg name="port_to_sdk" value="8873" />
+    <arg name="sdk_own_port" value="8874" />
+    <arg name="gripper" value="$(arg right_gripper)" />
+    <arg name="moveit" value="$(arg moveit)" />
+    <arg name="rviz" value="$(arg rviz)" />
+  </include>
+</launch>

@@ -1,0 +1,51 @@
+<launch>
+  <!--
+    整机启动：底盘 + 双臂 + 云台 + D455。各部分都直接 include 官方启动文件。
+
+    整机 robot_description 与 robot_state_publisher 由 Dingo 官方
+    dingo_description/launch/description.launch 提供（dingo_base/base.launch 会包含它）；
+    双臂、云台和相机通过 DINGO_URDF_EXTRAS 并入，环境变量由
+    unidingo_description 的 env hook 在 source devel/setup.bash 时设置。
+    /joint_states 汇集底盘车轮、云台和两臂（经 joint_state_prefixer 加前缀）的关节状态。
+  -->
+  <arg name="base" default="true" />
+  <arg name="arms" default="true" />
+  <arg name="pan_tilt" default="true" />
+  <arg name="camera" default="true" />
+
+  <arg name="moveit" default="true" doc="为两臂各启动一个 move_group" />
+  <arg name="rviz" default="false" doc="打开整机模型的 RViz" />
+
+  <arg name="pan_tilt_port" default="/dev/pan_tilt" />
+  <arg name="camera_serial_no" default="" />
+
+  <!-- 底盘：官方 base.launch（含整机模型、驱动、控制器、EKF、遥控与诊断） -->
+  <include if="$(arg base)" file="$(find dingo_base)/launch/base.launch" />
+  <!-- 不启动底盘时仍发布整机模型与 TF -->
+  <include unless="$(arg base)" file="$(find dingo_description)/launch/description.launch" />
+
+  <!-- 双臂 -->
+  <include if="$(arg arms)" file="$(find unidingo_bringup)/launch/arms.launch">
+    <arg name="moveit" value="$(arg moveit)" />
+  </include>
+
+  <!-- 云台：官方驱动，关节状态发布到 /joint_states -->
+  <include if="$(arg pan_tilt)" file="$(find pan_tilt_bringup)/launch/panTilt_bringup.launch">
+    <arg name="port_name" value="$(arg pan_tilt_port)" />
+  </include>
+
+  <!-- D455：官方 rs_camera.launch。模型只建到 d455_link，光学坐标系由驱动按出厂外参发布 -->
+  <include if="$(arg camera)" file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="camera" value="d455" />
+    <arg name="serial_no" value="$(arg camera_serial_no)" />
+    <arg name="color_width" value="640" />
+    <arg name="color_height" value="480" />
+    <arg name="color_fps" value="30" />
+    <arg name="depth_width" value="640" />
+    <arg name="depth_height" value="480" />
+    <arg name="depth_fps" value="30" />
+    <arg name="align_depth" value="true" />
+  </include>
+
+  <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find unidingo_description)/rviz/unidingo.rviz" />
+</launch>

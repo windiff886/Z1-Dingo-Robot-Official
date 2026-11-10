@@ -1,0 +1,9 @@
+<launch>
+  <!-- 不连接硬件，只显示整机模型；用滑条拖动各关节。
+       模型由 dingo_description 官方 description.launch 加载，附加结构来自 DINGO_URDF_EXTRAS。 -->
+  <include file="$(find dingo_description)/launch/description.launch" />
+
+  <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find unidingo_description)/rviz/unidingo.rviz" />
+</launch>

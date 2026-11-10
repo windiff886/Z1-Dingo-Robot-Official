@@ -1,0 +1,51 @@
+<launch>
+  <!--
+    一条 Z1 机械臂，放在 <arm>_arm 命名空间里运行官方 z1_ros 栈。
+    内容等同于 z1_bringup/launch/real_arm.launch，只多了两件事：
+      1. 用参数覆盖官方 config.yaml 中的 MCU IP 与 UDP 端口，使两条臂互不冲突；
+      2. 不在命名空间里启动 robot_state_publisher（两臂未加前缀的 TF 会互相覆盖），
+         改由 joint_state_prefixer 把关节名加上 <arm>_ 前缀转发到整机 /joint_states。
+  -->
+  <arg name="arm" doc="left 或 right；命名空间为 {arm}_arm，整机模型中的关节前缀为 {arm}_" />
+  <arg name="mcu_ip" doc="机械臂 MCU 的 IP" />
+  <arg name="port_to_mcu" doc="z1_ctrl 与 MCU 通信的本机端口，多臂时必须不同" />
+  <arg name="port_to_sdk" doc="z1_ctrl 接收 SDK (z1_hw) 的端口，多臂时必须不同" />
+  <arg name="sdk_own_port" doc="z1_hw 自身的 UDP 端口，多臂时必须不同" />
+  <arg name="gripper" default="true" doc="是否安装宇树原装夹爪" />
+
+  <arg name="controller" default="true" doc="启动 z1_ctrl" />
+  <arg name="ros_controller" default="true" doc="启动 z1_hw 与 ros_control 控制器" />
+  <arg name="moveit" default="true" doc="启动 move_group" />
+  <arg name="rviz" default="false" doc="启动官方 z1_rviz（MoveIt 面板，坐标系为本臂的 world）" />
+
+  <group ns="$(arg arm)_arm">
+    <!-- 同 real_arm.launch -->
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find z1_description)/xacro/robot.xacro'
+      UnitreeGripper:=$(arg gripper)"/>
+
+    <group if="$(arg controller)">
+      <include file="$(find z1_bringup)/launch/real_ctrl.launch" />
+      <!-- 覆盖 z1_controller/config/config.yaml 中的 udp 段 -->
+      <param name="z1_ctrl/udp/mcu_ip" value="$(arg mcu_ip)" />
+      <param name="z1_ctrl/udp/port_to_mcu" value="$(arg port_to_mcu)" />
+      <param name="z1_ctrl/udp/port_to_sdk" value="$(arg port_to_sdk)" />
+    </group>
+
+    <group if="$(arg ros_controller)">
+      <include file="$(find z1_hw)/launch/z1_hw.launch">
+        <arg name="UnitreeGripper" value="$(arg gripper)" />
+      </include>
+      <!-- 覆盖 z1_controller/config/config.yaml 与 z1_hw/config/config.yaml 中的端口 -->
+      <param name="z1_hw_node/udp/port_to_sdk" value="$(arg port_to_sdk)" />
+      <param name="z1_hw_node/udp_to_controller/own_port" value="$(arg sdk_own_port)" />
+    </group>
+
+    <include if="$(arg moveit)" file="$(find z1_moveit_config)/launch/move_group.launch" />
+
+    <include if="$(arg rviz)" file="$(find z1_rviz)/launch/view_robot.launch" />
+
+    <node pkg="unidingo_bringup" type="joint_state_prefixer.py" name="joint_state_prefixer">
+      <param name="prefix" value="$(arg arm)_" />
+    </node>
+  </group>
+</launch>

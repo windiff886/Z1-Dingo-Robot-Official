@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>unidingo_bringup</name>
+  <version>1.0.0</version>
+  <description>Launch files for the Uni-Dingo robot: the dual Z1 arm system and the whole robot, built on the official Dingo, z1_ros, pan_tilt_ros and realsense-ros launch files.</description>
+  <maintainer email="1435778533@qq.com">Lu Xiangyun</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>dingo_base</exec_depend>
+  <exec_depend>dingo_description</exec_depend>
+  <exec_depend>pan_tilt_bringup</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>unidingo_description</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>z1_bringup</exec_depend>
+  <exec_depend>z1_controller</exec_depend>
+  <exec_depend>z1_description</exec_depend>
+  <exec_depend>z1_hw</exec_depend>
+  <exec_depend>z1_moveit_config</exec_depend>
+  <exec_depend>z1_rviz</exec_depend>
+</package>
